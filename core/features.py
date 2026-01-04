@@ -2,27 +2,23 @@
 #Purpose: Frequency-aware feature engineering.
 # Works for daily / weekly / monthly
 # Generic lag & rolling features
-
+import pandas as pd
 import numpy as np
 
 def create_features(df, schema):
-    df = df.sort_values(schema.time_col)
-    target = schema.target_col
+    df = df.copy()
 
-    # Seasonal lag mapping
-    seasonal_lag = {"D": 7, "W": 4, "M": 12}.get(schema.freq[0], 7)
+    df[schema.time_col] = pd.to_datetime(df[schema.time_col])
 
-    group = schema.entity_cols or [None]
+    # Time features (always safe)
+    df["year"] = df[schema.time_col].dt.year
+    df["month"] = df[schema.time_col].dt.month
+    df["week"] = df[schema.time_col].dt.isocalendar().week.astype(int)
+    df["day"] = df[schema.time_col].dt.day
+    df["dayofweek"] = df[schema.time_col].dt.dayofweek
 
-    df["lag_1"] = df.groupby(group)[target].shift(1)
-    df["lag_seasonal"] = df.groupby(group)[target].shift(seasonal_lag)
+    # Lag features (safe)
+    df["lag_1"] = df[schema.target_col].shift(1)
+    df["lag_7"] = df[schema.target_col].shift(7)
 
-    df["rolling_mean"] = (
-        df.groupby(group)[target]
-        .shift(1)
-        .rolling(3)
-        .mean()
-    )
-
-    df = df.fillna(0)
-    return df
+    return df.dropna()

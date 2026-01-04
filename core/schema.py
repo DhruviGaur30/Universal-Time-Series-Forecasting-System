@@ -3,19 +3,18 @@
 #Replaces hard-coded column assumptions
 #Central contract used by all modules
 
-class DatasetSchema:
-    def __init__(
-        self,
-        time_col: str,
-        target_col: str,
-        entity_cols: list,
-        freq: str,
-        numeric_features: list,
-        categorical_features: list
-    ):
+class ForecastSchema:
+    def __init__(self, time_col, target_col, entity_cols, freq):
         self.time_col = time_col
         self.target_col = target_col
         self.entity_cols = entity_cols
         self.freq = freq
-        self.numeric_features = numeric_features
-        self.categorical_features = categorical_features
+
+    def is_future_safe(self, col):
+        # Explicitly unsafe
+        unsafe_keywords = [
+            "price", "discount", "promo", "competitor",
+            "forecast", "demand", "sales"
+        ]
+        return not any(k in col.lower() for k in unsafe_keywords)
+

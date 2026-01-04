@@ -1,31 +1,69 @@
-# core/models.py
-# Purpose: reusable ensemble model, 
-# Target-agnostic and Entity-agnostic
-
 from sklearn.ensemble import RandomForestRegressor
-from xgboost import XGBRegressor
-import numpy as np
 
-class EnsembleModel:
-    def __init__(self):
-        self.models = {
-            "rf": RandomForestRegressor(n_estimators=100),
-            "xgb": XGBRegressor(n_estimators=200)
-        }
-        self.weights = {}
+# Optional models (loaded safely)
+try:
+    from xgboost import XGBRegressor
+    XGB_AVAILABLE = True
+except ImportError:
+    XGB_AVAILABLE = False
 
-    def fit(self, X, y):
-        scores = {}
-        for name, model in self.models.items():
-            model.fit(X, y)
-            scores[name] = np.var(model.predict(X))
+try:
+    from catboost import CatBoostRegressor
+    CAT_AVAILABLE = True
+except ImportError:
+    CAT_AVAILABLE = False
 
-        total = sum(scores.values())
-        self.weights = {k: v / total for k, v in scores.items()}
 
-    def predict(self, X):
-        preds = [
-            self.models[k].predict(X) * self.weights[k]
-            for k in self.models
-        ]
-        return np.sum(preds, axis=0)
+def get_model(model_name: str):
+    """
+    Returns a regression model based on user selection.
+    Safe defaults, no crashes.
+    """
+
+    model_name = model_name.lower()
+
+    if model_name == "randomforest":
+        return RandomForestRegressor(
+            n_estimators=300,
+            max_depth=12,
+            random_state=42,
+            n_jobs=-1
+        )
+
+    elif model_name == "xgboost":
+        if not XGB_AVAILABLE:
+            raise ImportError(
+                "XGBoost is not installed. Install with: pip install xgboost"
+            )
+
+        return XGBRegressor(
+            n_estimators=400,
+            learning_rate=0.05,
+            max_depth=8,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            objective="reg:squarederror",
+            random_state=42,
+            n_jobs=-1
+        )
+
+    elif model_name == "catboost":
+        if not CAT_AVAILABLE:
+            raise ImportError(
+                "CatBoost is not installed. Install with: pip install catboost"
+            )
+
+        return CatBoostRegressor(
+            iterations=500,
+            learning_rate=0.05,
+            depth=8,
+            loss_function="RMSE",
+            verbose=False,
+            random_seed=42
+        )
+
+    else:
+        raise ValueError(
+            f"Unknown model '{model_name}'. "
+            "Choose from: RandomForest, XGBoost, CatBoost"
+        )

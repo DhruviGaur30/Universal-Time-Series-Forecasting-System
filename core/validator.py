@@ -3,30 +3,15 @@
 # Works with ANY schema, Never crashes UI, Produces quality score. 
 
 def validate_data(df, schema):
-    result = {
-        "is_valid": True,
-        "errors": [],
-        "warnings": [],
-        "statistics": {}
-    }
+    errors = []
 
-    # Basic checks
     if schema.time_col not in df.columns:
-        result["errors"].append("Time column missing")
-        result["is_valid"] = False
+        errors.append("Time column missing")
 
     if schema.target_col not in df.columns:
-        result["errors"].append("Target column missing")
-        result["is_valid"] = False
+        errors.append("Target column missing")
 
-    # Statistics (safe)
-    result["statistics"] = {
-        "rows": len(df),
-        "entities": len(schema.entity_cols),
-        "date_range": (
-            df[schema.time_col].min(),
-            df[schema.time_col].max()
-        )
+    return {
+        "is_valid": len(errors) == 0,
+        "errors": errors
     }
-
-    return result
